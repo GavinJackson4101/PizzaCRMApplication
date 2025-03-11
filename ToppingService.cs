@@ -1,63 +1,39 @@
-﻿using Dapper;
-using System.Data.SqlClient;
+﻿using System.Net.Http.Json;
 using TestBlazorAppGJackson.Classes;
 
-namespace ApiProj.Services
+public class ToppingService
 {
-    public class ToppingService
+    private readonly HttpClient _httpClient;
+
+    public ToppingService(HttpClient httpClient)
     {
-        private readonly string _connectionString;
+        _httpClient = httpClient;
+    }
 
-        public ToppingService(IConfiguration configuration)
-        {
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
-        }
+    // Method to get toppings
+    public async Task<IEnumerable<Topping>> GetToppingsAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<IEnumerable<Topping>>("https://localhost:7277/api/topping");
+    }
 
-        // Method to get all toppings from the database
-        public async Task<IEnumerable<Topping>> GetToppingsAsync()
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                var toppings = await connection.QueryAsync<Topping>("SELECT * FROM Toppings");
-                return toppings;
-            }
-        }
+    // Method to add a new topping
+    public async Task<bool> AddToppingAsync(Topping topping)
+    {
+        var response = await _httpClient.PostAsJsonAsync("https://localhost:7277/api/topping", topping);
+        return response.IsSuccessStatusCode;
+    }
 
-        // Method to add a new topping
-        public async Task AddToppingAsync(Topping topping)
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                var query = "INSERT INTO Toppings (ToppingName) VALUES (@ToppingName)";
-                await connection.ExecuteAsync(query, topping);
-            }
-        }
+    // Method to delete a topping
+    public async Task<bool> DeleteToppingAsync(int toppingId)
+    {
+        var response = await _httpClient.DeleteAsync($"https://localhost:7277/api/topping/{toppingId}");
+        return response.IsSuccessStatusCode;
+    }
 
-        // Method to delete a topping
-        public async Task<bool> DeleteToppingAsync(int toppingId)
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                var query = "DELETE FROM Toppings WHERE ToppingID = @ToppingID";
-                var affectedRows = await connection.ExecuteAsync(query, new { ToppingID = toppingId });
-                return affectedRows > 0;
-            }
-        }
-
-        // Method to update a topping
-        public async Task<bool> UpdateToppingAsync(Topping topping)
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                var query = "UPDATE Toppings SET ToppingName = @ToppingName WHERE ToppingID = @ToppingID";
-                var affectedRows = await connection.ExecuteAsync(query, topping);
-                return affectedRows > 0;
-            }
-        }
+    public async Task<bool> UpdateToppingAsync(Topping topping)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"https://localhost:7277/api/topping/{topping.ToppingID}", topping);
+        return response.IsSuccessStatusCode;
     }
 
 }

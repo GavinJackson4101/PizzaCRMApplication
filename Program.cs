@@ -1,44 +1,31 @@
-using ApiProj.Services;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using TestBlazorAppGJackson;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http;
+using TestBlazorAppGJackson.Services;
+using TestBlazorAppGJackson.Services.TestBlazorAppGJackson.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// Configure CORS to allow requests from the Blazor app's domain
-builder.Services.AddCors(options =>
+// Add the root components
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+builder.Services.AddTransient<UserService>();
+
+// Register PizzaService with HttpClient
+builder.Services.AddHttpClient<PizzaService>(client =>
 {
-    options.AddPolicy("AllowBlazorApp", policy =>
-    {
-        policy.WithOrigins("https://localhost:7106") // Update to match the Blazor app's URL
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials(); // Allow credentials (cookies, authentication headers)
-    });
+    client.BaseAddress = new Uri("https://localhost:5002/"); // Replace with your API base URL
 });
 
-// Add services for the application
-builder.Services.AddSingleton<PizzaService>();
-builder.Services.AddSingleton<ToppingService>();
-
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-
-
-var app = builder.Build();
-
-// Enable CORS for the app
-app.UseCors("AllowBlazorApp");
-
-if (app.Environment.IsDevelopment())
+// Register ToppingService with HttpClient (if needed)
+builder.Services.AddHttpClient<ToppingService>(client =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    client.BaseAddress = new Uri("https://localhost:5002/"); // Replace with your API base URL
+});
 
-app.UseHttpsRedirection();
-app.UseAuthorization();
+// Register the default HttpClient if needed for other purposes
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-app.MapControllers();
-
-app.Run();
+await builder.Build().RunAsync();
